@@ -100,26 +100,17 @@ async function moveEventToDate(auth, calendarId, event, newDate, timezone) {
  * Respects work hours, lunch break, and gaps between tasks.
  */
 async function stackTasksForDay(auth, calendarId, tasks, targetDate, config) {
-  const { timezone, workStart, workEnd, lunchStart, lunchEnd, taskDurationMins, bufferMins } = config
+  const { timezone, workStart, workEnd, taskDurationMins, bufferMins } = config
 
   const [wsH, wsM] = workStart.split(':').map(Number)
   const [weH, weM] = workEnd.split(':').map(Number)
-  const [lsH, lsM] = lunchStart.split(':').map(Number)
-  const [leH, leM] = lunchEnd.split(':').map(Number)
 
   const calendar = google.calendar({ version: 'v3', auth })
 
   let cursor = targetDate.set({ hour: wsH, minute: wsM, second: 0 })
   const workEndTime = targetDate.set({ hour: weH, minute: weM, second: 0 })
-  const lunchStartTime = targetDate.set({ hour: lsH, minute: lsM, second: 0 })
-  const lunchEndTime = targetDate.set({ hour: leH, minute: leM, second: 0 })
 
   for (const task of tasks) {
-    // Skip over lunch
-    if (cursor < lunchEndTime && cursor.plus({ minutes: taskDurationMins }) > lunchStartTime) {
-      cursor = lunchEndTime
-    }
-
     // Stop if past work end
     if (cursor >= workEndTime) {
       console.log(`Out of work hours — remaining tasks left as all-day events`)
