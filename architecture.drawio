@@ -1,0 +1,128 @@
+<mxfile host="Claude">
+  <diagram name="Task App Architecture">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ===== BACKGROUND ZONES ===== -->
+
+        <!-- User Zone -->
+        <mxCell id="zone_user" value="User" style="swimlane;startSize=30;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=13;align=center;" vertex="1" parent="1">
+          <mxGeometry x="40" y="60" width="220" height="380" as="geometry" />
+        </mxCell>
+
+        <!-- AWS Zone -->
+        <mxCell id="zone_aws" value="AWS" style="swimlane;startSize=30;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=13;align=center;" vertex="1" parent="1">
+          <mxGeometry x="320" y="60" width="700" height="380" as="geometry" />
+        </mxCell>
+
+        <!-- Google Zone -->
+        <mxCell id="zone_google" value="Google" style="swimlane;startSize=30;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=13;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="60" width="220" height="380" as="geometry" />
+        </mxCell>
+
+        <!-- ===== USER SIDE ===== -->
+
+        <mxCell id="gcal_ui" value="Google Calendar&#xa;(Personal)" style="shape=mxgraph.google2.calendar;fillColor=#4285F4;strokeColor=none;fontColor=#ffffff;fontStyle=1;fontSize=11;" vertex="1" parent="zone_user">
+          <mxGeometry x="60" y="70" width="100" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="action_create" value="1. Create blue event&#xa;(= new task)" style="rounded=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=10;align=center;" vertex="1" parent="zone_user">
+          <mxGeometry x="20" y="200" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="action_complete" value="2. Drag to past day&#xa;(= mark complete)" style="rounded=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=10;align=center;" vertex="1" parent="zone_user">
+          <mxGeometry x="20" y="255" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="action_view" value="3. See rolled-over tasks&#xa;stacked next day" style="rounded=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=10;align=center;" vertex="1" parent="zone_user">
+          <mxGeometry x="20" y="310" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ===== AWS SIDE ===== -->
+
+        <!-- EventBridge Rule -->
+        <mxCell id="eb_midnight" value="EventBridge&#xa;Cron: midnight daily" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.eventbridge;fillColor=#E7157B;strokeColor=none;fontColor=#ffffff;fontStyle=1;fontSize=10;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;" vertex="1" parent="zone_aws">
+          <mxGeometry x="70" y="140" width="60" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Single Lambda -->
+        <mxCell id="lambda_main" value="Lambda&#xa;Midnight Function" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;fillColor=#E7157B;strokeColor=none;fontSize=10;fontStyle=1;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;" vertex="1" parent="zone_aws">
+          <mxGeometry x="280" y="140" width="60" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Lambda logic box -->
+        <mxCell id="lambda_logic" value="For each blue event in personal calendar:&#xa;&#xa;• Event on TODAY  →  move to tomorrow + stack time slots&#xa;• Event on PAST date  →  skip (user completed it)&#xa;• Event on FUTURE date  →  skip (already planned)" style="rounded=1;fillColor=#ffffff;strokeColor=#E7157B;fontSize=10;align=left;spacingLeft=10;verticalAlign=middle;" vertex="1" parent="zone_aws">
+          <mxGeometry x="220" y="240" width="420" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- SSM -->
+        <mxCell id="ssm" value="SSM Parameter Store&#xa;&#xa;• Google OAuth2 token&#xa;• Refresh token&#xa;• Config (calendar ID,&#xa;  work hours, etc.)" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.systems_manager_parameter_store;fillColor=#E7157B;strokeColor=none;fontColor=#000000;fontStyle=1;fontSize=10;labelPosition=right;verticalLabelPosition=middle;align=left;verticalAlign=middle;" vertex="1" parent="zone_aws">
+          <mxGeometry x="510" y="80" width="60" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- CloudWatch -->
+        <mxCell id="cloudwatch" value="CloudWatch Logs&#xa;&#xa;• Rollover history&#xa;• Errors" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cloudwatch;fillColor=#E7157B;strokeColor=none;fontColor=#000000;fontStyle=1;fontSize=10;labelPosition=right;verticalLabelPosition=middle;align=left;verticalAlign=middle;" vertex="1" parent="zone_aws">
+          <mxGeometry x="510" y="200" width="60" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ===== GOOGLE SIDE ===== -->
+
+        <mxCell id="gcal_api" value="Google Calendar API&#xa;&#xa;• List events&#xa;• Update / move events&#xa;• Check event dates" style="shape=mxgraph.google2.calendar;fillColor=#34A853;strokeColor=none;fontColor=#000000;fontStyle=1;fontSize=10;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;" vertex="1" parent="zone_google">
+          <mxGeometry x="60" y="80" width="100" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- ===== ARROWS ===== -->
+
+        <!-- EventBridge → Lambda -->
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#E7157B;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="eb_midnight" target="lambda_main" parent="zone_aws">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e1_label" value="triggers at midnight" style="edgeLabel;fontSize=9;" vertex="1" connectable="0" parent="e1">
+          <mxGeometry x="-0.1" relative="1" as="geometry"><mxPoint as="offset"/></mxGeometry>
+        </mxCell>
+
+        <!-- Lambda → logic box -->
+        <mxCell id="e_logic" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#E7157B;strokeWidth=1;dashed=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="lambda_main" target="lambda_logic" parent="zone_aws">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Lambda → SSM -->
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#555555;strokeWidth=1;dashed=1;exitX=1;exitY=0.3;entryX=0;entryY=0.5;" edge="1" source="lambda_main" target="ssm" parent="zone_aws">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3_label" value="reads token" style="edgeLabel;fontSize=9;" vertex="1" connectable="0" parent="e3">
+          <mxGeometry relative="1" as="geometry"><mxPoint as="offset"/></mxGeometry>
+        </mxCell>
+
+        <!-- Lambda → CloudWatch -->
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#555555;strokeWidth=1;dashed=1;exitX=1;exitY=0.7;entryX=0;entryY=0.5;" edge="1" source="lambda_main" target="cloudwatch" parent="zone_aws">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Lambda → Google Calendar API (cross-zone) -->
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#34A853;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="lambda_main" target="gcal_api" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7_label" value="list + update events" style="edgeLabel;fontSize=9;" vertex="1" connectable="0" parent="e7">
+          <mxGeometry x="-0.1" relative="1" as="geometry"><mxPoint as="offset"/></mxGeometry>
+        </mxCell>
+
+        <!-- Google Calendar API → Google Calendar UI -->
+        <mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#4285F4;strokeWidth=2;" edge="1" source="gcal_api" target="gcal_ui" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9_label" value="updates visible calendar" style="edgeLabel;fontSize=9;" vertex="1" connectable="0" parent="e9">
+          <mxGeometry x="0.1" relative="1" as="geometry"><mxPoint as="offset"/></mxGeometry>
+        </mxCell>
+
+        <!-- ===== FOOTER ===== -->
+        <mxCell id="legend_cost" value="Cost: ~$0/month  |  1 Lambda  •  1 EventBridge rule  •  1 SSM secret  •  CloudWatch logs" style="text;fontSize=11;fontStyle=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;rounded=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="40" y="490" width="700" height="36" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

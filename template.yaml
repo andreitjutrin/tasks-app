@@ -1,0 +1,43 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Task rollover app — moves incomplete Google Calendar tasks to the next day
+
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    Timeout: 60
+    MemorySize: 128
+
+Resources:
+  TaskRolloverFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: task-rollover
+      Handler: src/index.handler
+      Description: Rolls over incomplete tasks in Google Calendar at midnight
+      Events:
+        MidnightCron:
+          Type: Schedule
+          Properties:
+            # Adjust hour to match your local midnight in UTC
+            # e.g. for UTC+1 (London): cron(0 23 * * ? *) runs at 23:00 UTC = midnight London
+            Schedule: cron(0 0 * * ? *)
+            Name: task-rollover-midnight
+            Description: Triggers task rollover at midnight
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+                - ssm:GetParameters
+                - ssm:GetParametersByPath
+              Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/taskapp/*
+            - Effect: Allow
+              Action:
+                - kms:Decrypt
+              Resource: "*"
+
+Outputs:
+  TaskRolloverFunction:
+    Description: Lambda function ARN
+    Value: !GetAtt TaskRolloverFunction.Arn
