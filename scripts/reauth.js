@@ -1,17 +1,19 @@
 /**
  * Re-authentication script.
- * Fetches Google OAuth credentials from SSM, opens the consent URL,
- * exchanges the auth code for a new refresh token, and updates SSM.
+ * Fetches Google OAuth credentials from SSM, opens the consent URL in a browser,
+ * captures the auth code via a local HTTP server, exchanges it for a new refresh
+ * token, and updates SSM automatically.
  *
  * Usage: node scripts/reauth.js
  */
 
 const { SSMClient, GetParametersByPathCommand, PutParameterCommand } = require('@aws-sdk/client-ssm')
 const { google } = require('googleapis')
-const readline = require('readline')
+const http = require('http')
 const { exec } = require('child_process')
 
-const REDIRECT_URI = 'urn:ietf:wg:oauth:2.0:oob'
+const PORT = 3000
+const REDIRECT_URI = `http://localhost:${PORT}`
 const SCOPES = ['https://www.googleapis.com/auth/calendar']
 const SSM_PATH = '/taskapp/'
 
@@ -49,12 +51,35 @@ function openBrowser(url) {
   exec(cmd)
 }
 
-function prompt(question) {
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
-  return new Promise(resolve => rl.question(question, answer => {
-    rl.close()
-    resolve(answer.trim())
-  }))
+function waitForAuthCode() {
+  return new Promise((resolve, reject) => {
+    const server = http.createServer((req, res) => {
+      const url = new URL(req.url, `http://localhost:${PORT}`)
+      const code = url.searchParams.get('code')
+      const error = url.searchParams.get('error')
+
+      if (error) {
+        res.writeHead(400, { 'Content-Type': 'text/html' })
+        res.end('<h2>Authorisation denied. You can close this tab.</h2>')
+        server.close()
+        reject(new Error(`Google returned error: ${error}`))
+        return
+      }
+
+      if (code) {
+        res.writeHead(200, { 'Content-Type': 'text/html' })
+        res.end('<h2>Authorisation complete! You can close this tab and return to the terminal.</h2>')
+        server.close()
+        resolve(code)
+      }
+    })
+
+    server.listen(PORT, () => {
+      console.log(`Listening for Google callback on http://localhost:${PORT}`)
+    })
+
+    server.on('error', reject)
+  })
 }
 
 async function main() {
@@ -78,22 +103,18 @@ async function main() {
   })
 
   console.log('\nOpening Google consent page in your browser...')
-  console.log('If it does not open automatically, visit this URL:\n')
+  console.log('If it does not open automatically, visit:\n')
   console.log(authUrl)
+  console.log()
   openBrowser(authUrl)
 
-  const code = await prompt('\nPaste the authorisation code shown by Google: ')
-
-  if (!code) {
-    console.error('No code entered. Aborting.')
-    process.exit(1)
-  }
+  const code = await waitForAuthCode()
 
   console.log('\nExchanging code for tokens...')
   const { tokens } = await oauth2Client.getToken(code)
 
   if (!tokens.refresh_token) {
-    console.error('ERROR: No refresh_token in response. Make sure you visited the URL above with prompt=consent.')
+    console.error('ERROR: No refresh_token returned. Try revoking app access in your Google account and running this again.')
     process.exit(1)
   }
 
@@ -101,7 +122,7 @@ async function main() {
   await updateSsmParam('google/refresh_token', tokens.refresh_token)
 
   console.log('\nDone! New refresh token saved to /taskapp/google/refresh_token')
-  console.log('You can test by running: node src/local.js')
+  console.log('Test with: node src/local.js')
 }
 
 main().catch(err => {
