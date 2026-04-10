@@ -19,9 +19,11 @@ Resources:
         MidnightCron:
           Type: Schedule
           Properties:
-            # Adjust hour to match your local midnight in UTC
-            # e.g. for UTC+1 (London): cron(0 23 * * ? *) runs at 23:00 UTC = midnight London
-            Schedule: cron(0 0 * * ? *)
+            # Run at 23:00 local time (end of day) so incomplete tasks roll to tomorrow.
+            # 23:00 BST (UTC+1, summer) = 22:00 UTC → cron(0 22 * * ? *)
+            # 23:00 GMT (UTC+0, winter) = 23:00 UTC → cron(0 23 * * ? *)
+            # Currently set for BST (April–October). Change to 23 in winter.
+            Schedule: cron(0 22 * * ? *)
             Name: task-rollover-midnight
             Description: Triggers task rollover at midnight
       Policies:
