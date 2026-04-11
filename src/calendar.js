@@ -23,12 +23,13 @@ async function getTasksForDate(auth, calendarId, date, timezone) {
 
   const events = response.data.items || []
 
-  // Tasks = events with no specific colorId (using calendar default = blue)
-  // Skip all-day events that are already in the past (completed tasks dragged back)
+  // Tasks = timed events with no specific colorId (using calendar default = blue)
+  // All-day events are excluded — they are calendar markers, not tasks to roll over
   return events.filter(event => {
     const hasNoColor = !event.colorId
     const isNotDeclined = !isDeclined(event)
-    return hasNoColor && isNotDeclined
+    const isTimedEvent = !event.start.date // all-day events have start.date; timed have start.dateTime
+    return hasNoColor && isNotDeclined && isTimedEvent
   })
 }
 
